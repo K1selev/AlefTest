@@ -8,12 +8,12 @@
 import UIKit
 
 enum UserInfoHeaderViewStyle {
-    case personalInfo
-    case kidsInfo
+    case profile
+    case children
 }
 
 protocol HeaderDelegate: AnyObject {
-    func didTapAddButton()
+    func handleNewChildAction()
 }
 
 final class UserInfoHeaderView: UICollectionReusableView {
@@ -26,7 +26,7 @@ final class UserInfoHeaderView: UICollectionReusableView {
         return label
     }()
     
-    private lazy var headerButton: UIButton = {
+    private lazy var actionButton: UIButton = {
         let button = UIButton()
         button.setTitle("Добавить ребенка", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 14)
@@ -37,8 +37,15 @@ final class UserInfoHeaderView: UICollectionReusableView {
         button.layer.cornerRadius = 20
         
         let spacing: CGFloat = 8
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -spacing / 2, bottom: 0, right: spacing / 2)
-        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: spacing / 2, bottom: 0, right: -spacing / 2)
+        if #available(iOS 15.0, *) {
+            var config = UIButton.Configuration.plain()
+            config.imagePadding = 8
+            config.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)
+            button.configuration = config
+        } else {
+            button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+            button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+        }
 
         button.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         return button
@@ -59,28 +66,28 @@ final class UserInfoHeaderView: UICollectionReusableView {
         super.prepareForReuse()
         headerTitle.text = ""
         headerTitleWidthConstraint?.isActive = false
-        headerButton.removeFromSuperview()
+        actionButton.removeFromSuperview()
     }
     
     private func setupUI() {
         addSubview(headerTitle)
         headerTitle.translatesAutoresizingMaskIntoConstraints = false
-        headerButton.translatesAutoresizingMaskIntoConstraints = false
+        actionButton.translatesAutoresizingMaskIntoConstraints = false
     }
     
     func setup(headerStyle: UserInfoHeaderViewStyle, cellsCount: Int) {
         setupHeaderTitle(for: headerStyle)
         
-        if headerStyle == .kidsInfo, cellsCount < 5 {
-            setupHeaderButton()
+        if headerStyle == .children, cellsCount < 5 {
+            configureActionButton()
         }
     }
     
     private func setupHeaderTitle(for style: UserInfoHeaderViewStyle) {
-        headerTitle.text = (style == .personalInfo) ? "Персональные данные" : "Дети (макс. 5)"
+        headerTitle.text = (style == .profile) ? "Персональные данные" : "Дети (макс. 5)"
         
         headerTitleWidthConstraint?.isActive = false
-        headerTitleWidthConstraint = headerTitle.widthAnchor.constraint(equalToConstant: (style == .personalInfo) ? 300 : 131)
+        headerTitleWidthConstraint = headerTitle.widthAnchor.constraint(equalToConstant: (style == .profile) ? 300 : 131)
         headerTitleWidthConstraint?.isActive = true
         
         NSLayoutConstraint.activate([
@@ -89,17 +96,17 @@ final class UserInfoHeaderView: UICollectionReusableView {
         ])
     }
     
-    private func setupHeaderButton() {
-        addSubview(headerButton)
+    private func configureActionButton() {
+        addSubview(actionButton)
         NSLayoutConstraint.activate([
-            headerButton.leadingAnchor.constraint(equalTo: headerTitle.trailingAnchor, constant: 16),
-            headerButton.trailingAnchor.constraint(equalTo: trailingAnchor),
-            headerButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            headerButton.heightAnchor.constraint(equalToConstant: 40)
+            actionButton.leadingAnchor.constraint(equalTo: headerTitle.trailingAnchor, constant: 16),
+            actionButton.trailingAnchor.constraint(equalTo: trailingAnchor),
+            actionButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            actionButton.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
     
     @objc private func addButtonTapped() {
-        viewController?.didTapAddButton()
+        viewController?.handleNewChildAction()
     }
 }

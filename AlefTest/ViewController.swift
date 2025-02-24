@@ -13,14 +13,14 @@ private enum CollectionViewIdentifiers {
     static let footerView = "UserInfoCollectionFooterView"
 }
 
-protocol CellToViewControllerProtocol: AnyObject {
+protocol ProfileViewControllerProtocol: AnyObject {
     func editingEnded(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle)
     func didTapDeleteButton(indexPath: IndexPath)
 }
 
-protocol UserInfoViewControllerProtocol: AnyObject {
-    func reloadKidsSection()
-    func reloadData()
+protocol ProfileControllerProtocol: AnyObject {
+    func refreshDependentsSection()
+    func refreshAllSections()
 }
 
 final class UserInfoViewController: UIViewController {
@@ -77,7 +77,7 @@ extension UserInfoViewController: UICollectionViewDataSource {
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return section == 0 ? 1 : presenter.numberOfCells()
+        return section == 0 ? 1 : presenter.totalChildrenCount()
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -85,11 +85,11 @@ extension UserInfoViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
         
-        let cellsCount = presenter.numberOfCells()
+        let cellsCount = presenter.totalChildrenCount()
         if indexPath.section == 0 {
-            cell.setupCell(cellType: .personalInfo, cellData: presenter.personalDataForCell(), indexPath: indexPath, cellsCount: cellsCount)
+            cell.setupCell(cellType: .profile, cellData: presenter.getUserInfo(), indexPath: indexPath, cellsCount: cellsCount)
         } else {
-            cell.setupCell(cellType: .kidsInfo, cellData: presenter.kidsDataForCell(indexPath.row), indexPath: indexPath, cellsCount: cellsCount)
+            cell.setupCell(cellType: .children, cellData: presenter.getChildInfo(indexPath.row), indexPath: indexPath, cellsCount: cellsCount)
         }
         
         cell.viewController = self
@@ -111,8 +111,8 @@ extension UserInfoViewController: UICollectionViewDataSource {
         guard let headerView = collection.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CollectionViewIdentifiers.headerView, for: indexPath) as? UserInfoHeaderView else {
             return UICollectionReusableView()
         }
-        let style: UserInfoHeaderViewStyle = indexPath.section == 0 ? .personalInfo : .kidsInfo
-        headerView.setup(headerStyle: style, cellsCount: presenter.numberOfCells())
+        let style: UserInfoHeaderViewStyle = indexPath.section == 0 ? .profile : .children
+        headerView.setup(headerStyle: style, cellsCount: presenter.totalChildrenCount())
         headerView.viewController = self
         return headerView
     }
@@ -139,33 +139,33 @@ extension UserInfoViewController: UICollectionViewDelegateFlowLayout {
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForFooterInSection section: Int) -> CGSize {
-        return section == 1 && presenter.numberOfCells() > 0 ? CGSize(width: collectionView.frame.width, height: 60) : .zero
+        return section == 1 && presenter.totalChildrenCount() > 0 ? CGSize(width: collectionView.frame.width, height: 60) : .zero
     }
 }
 
-extension UserInfoViewController: UserInfoViewControllerProtocol {
-    func reloadKidsSection() {
+extension UserInfoViewController: ProfileControllerProtocol {
+    func refreshDependentsSection() {
         collection.reloadSections([1])
     }
     
-    func reloadData() {
+    func refreshAllSections() {
         collection.reloadData()
     }
 }
 
 extension UserInfoViewController: HeaderDelegate {
-    func didTapAddButton() {
-        presenter.didTapAddButton()
+    func handleNewChildAction() {
+        presenter.handleNewChildAction()
     }
 }
 
-extension UserInfoViewController: CellToViewControllerProtocol {
+extension UserInfoViewController: ProfileViewControllerProtocol {
     func editingEnded(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle) {
-        presenter.saveData(indexPath: indexPath, text: text, formType: formType, cellType: cellType)
+        presenter.updateFormData(indexPath: indexPath, text: text, formType: formType, cellType: cellType)
     }
     
     func didTapDeleteButton(indexPath: IndexPath) {
-        presenter.deleteItem(indexPath: indexPath)
+        presenter.removeChild(indexPath: indexPath)
     }
 }
 
@@ -174,7 +174,7 @@ extension UserInfoViewController: FooterDelegate {
         let alert = UIAlertController(title: "Очистить данные?", message: "Все введённые данные будут удалены", preferredStyle: .actionSheet)
         
         let resetAction = UIAlertAction(title: "Сбросить данные", style: .destructive) { _ in
-            self.presenter.deleteAllItems()
+            self.presenter.clearAllData()
         }
         
         let cancelAction = UIAlertAction(title: "Отмена", style: .cancel, handler: nil)

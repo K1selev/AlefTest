@@ -13,7 +13,7 @@ protocol FooterDelegate: AnyObject {
 
 final class UserInfoFooterView: UICollectionReusableView {
    
-    private lazy var deleteAllButton: UIButton = {
+    private lazy var clearDataButton: UIButton = {
         let button = UIButton()
         button.setTitle("Очистить", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 14)
@@ -37,14 +37,14 @@ final class UserInfoFooterView: UICollectionReusableView {
     }
     
     private func setupUI() {
-        addSubview(deleteAllButton)
-        deleteAllButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(clearDataButton)
+        clearDataButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            deleteAllButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            deleteAllButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            deleteAllButton.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 0.7),
-            deleteAllButton.heightAnchor.constraint(equalToConstant: 40)
+            clearDataButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            clearDataButton.centerXAnchor.constraint(equalTo: centerXAnchor),
+            clearDataButton.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 0.7),
+            clearDataButton.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
     

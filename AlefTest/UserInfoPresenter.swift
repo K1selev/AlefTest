@@ -8,42 +8,42 @@
 import Foundation
 
 protocol UserInfoPresenterProtocol: AnyObject {
-    func numberOfCells() -> Int
-    func personalDataForCell() -> CellDataModel
-    func kidsDataForCell(_ index: Int) -> CellDataModel
-    func didTapAddButton()
-    func saveData(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle)
-    func deleteItem(indexPath: IndexPath)
-    func deleteAllItems()
+    func totalChildrenCount() -> Int
+    func getUserInfo() -> CellDataModel
+    func getChildInfo(_ index: Int) -> CellDataModel
+    func handleNewChildAction()
+    func updateFormData(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle)
+    func removeChild(indexPath: IndexPath)
+    func clearAllData()
 }
 
 final class UserInfoPresenter {
-    var kidsData: [CellDataModel] = []
+    var childrenRecords: [CellDataModel] = []
     var personalData: CellDataModel = CellDataModel()
     
-    weak var view: UserInfoViewControllerProtocol?
+    weak var view: ProfileControllerProtocol?
     
     private func addChild() {
-        kidsData.append(CellDataModel())
+        childrenRecords.append(CellDataModel())
     }
 }
 
 extension UserInfoPresenter: UserInfoPresenterProtocol {
     
-    func personalDataForCell() -> CellDataModel {
+    func getUserInfo() -> CellDataModel {
         return personalData
     }
     
-    func saveData(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle) {
+    func updateFormData(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle) {
         switch cellType {
-        case .kidsInfo:
+        case .children:
             switch formType {
             case .age:
-                kidsData[indexPath.row].age = text
+                childrenRecords[indexPath.row].age = text
             case .name:
-                kidsData[indexPath.row].name = text
+                childrenRecords[indexPath.row].name = text
             }
-        case .personalInfo:
+        case .profile:
             switch formType {
             case .age:
                 personalData.age = text
@@ -53,29 +53,29 @@ extension UserInfoPresenter: UserInfoPresenterProtocol {
         }
     }
     
-    func kidsDataForCell(_ index: Int) -> CellDataModel {
-        return kidsData[index]
+    func getChildInfo(_ index: Int) -> CellDataModel {
+        return childrenRecords[index]
     }
     
-    func numberOfCells() -> Int {
-        return kidsData.count
+    func totalChildrenCount() -> Int {
+        return childrenRecords.count
     }
     
-    func deleteItem(indexPath: IndexPath) {
-        kidsData.remove(at: indexPath.row)
-        view?.reloadKidsSection()
+    func removeChild(indexPath: IndexPath) {
+        childrenRecords.remove(at: indexPath.row)
+        view?.refreshDependentsSection()
     }
     
-    func deleteAllItems() {
+    func clearAllData() {
         personalData = CellDataModel()
-        kidsData.removeAll()
-        view?.reloadData()
+        childrenRecords.removeAll()
+        view?.refreshAllSections()
     }
     
-    func didTapAddButton() {
-        if kidsData.count < 5 {
+    func handleNewChildAction() {
+        if childrenRecords.count < 5 {
             addChild()
-            view?.reloadKidsSection()
+            view?.refreshDependentsSection()
         }
     }
 }

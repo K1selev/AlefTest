@@ -12,13 +12,13 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
     private let nameForm = FormView(formType: .name)
     private let ageForm = FormView(formType: .age)
     
-    private let divider: UIView = {
-        let view = UIView()
-        view.backgroundColor = .gray
-        return view
+    private let separatorLine: UIView = {
+        let line = UIView()
+        line.backgroundColor = .gray
+        return line
     }()
     
-    private lazy var deleteButton: UIButton = {
+    private lazy var removeButton: UIButton = {
         let button = UIButton()
         button.setTitle("Удалить", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 15)
@@ -29,7 +29,7 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
     
     private var cellType: UserInfoHeaderViewStyle?
     private var indexPath: IndexPath?
-    weak var viewController: CellToViewControllerProtocol?
+    weak var viewController: ProfileViewControllerProtocol?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -42,13 +42,13 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
-        [nameForm, ageForm, deleteButton, divider].forEach { $0.removeFromSuperview() }
+        [nameForm, ageForm, removeButton, separatorLine].forEach { $0.removeFromSuperview() }
         indexPath = nil
         cellType = nil
     }
     
     private func setupUI() {
-        [nameForm, ageForm, deleteButton, divider].forEach {
+        [nameForm, ageForm, removeButton, separatorLine].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
     }
@@ -60,8 +60,8 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
         contentView.addSubview(nameForm)
         contentView.addSubview(ageForm)
         
-        if cellType == .kidsInfo {
-            contentView.addSubview(deleteButton)
+        if cellType == .children {
+            contentView.addSubview(removeButton)
         }
         
         setupConstraints(for: cellType)
@@ -73,7 +73,7 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
     }
     
     private func setupConstraints(for cellType: UserInfoHeaderViewStyle) {
-        let isKidsInfo = (cellType == .kidsInfo)
+        let isKidsInfo = (cellType == .children)
         let formWidthMultiplier: CGFloat = isKidsInfo ? 0.5 : 1.0
         
         NSLayoutConstraint.activate([
@@ -90,8 +90,8 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
         
         if isKidsInfo {
             NSLayoutConstraint.activate([
-                deleteButton.centerYAnchor.constraint(equalTo: nameForm.centerYAnchor),
-                deleteButton.leadingAnchor.constraint(equalTo: nameForm.trailingAnchor, constant: 16)
+                removeButton.centerYAnchor.constraint(equalTo: nameForm.centerYAnchor),
+                removeButton.leadingAnchor.constraint(equalTo: nameForm.trailingAnchor, constant: 16)
             ])
         }
     }
@@ -103,12 +103,12 @@ final class UserInfoCollectionViewCell: UICollectionViewCell {
     }
     
     private func configureDivider() {
-        contentView.addSubview(divider)
+        contentView.addSubview(separatorLine)
         NSLayoutConstraint.activate([
-            divider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            divider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            divider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            divider.heightAnchor.constraint(equalToConstant: 1)
+            separatorLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            separatorLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            separatorLine.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            separatorLine.heightAnchor.constraint(equalToConstant: 1)
         ])
     }
     
