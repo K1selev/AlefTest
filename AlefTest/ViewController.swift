@@ -7,103 +7,181 @@
 
 import UIKit
 
-protocol UserInfoViewProtocol: AnyObject {
-    func reloadChildren()
-    func clearData()
+private enum CollectionViewIdentifiers {
+    static let userInfoCell = "UserInfoCollectionViewCell"
+    static let headerView = "UserInfoCollectionHeaderView"
+    static let footerView = "UserInfoCollectionFooterView"
 }
 
-class UserInfoViewController: UIViewController, UserInfoViewProtocol {
-    
-    // MARK: - UI Elements
-//    private let nameTextField = CustomTextField(placeholder: "Имя")
-//    private let ageTextField = CustomTextField(placeholder: "Возраст")
-    
-    let nameTextField: CustomTextField = {
-        let textField = CustomTextField()
-        textField.floatingPlaceholder = "Имя"
-        return textField
-    }()
+protocol CellToViewControllerProtocol: AnyObject {
+    func editingEnded(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle)
+    func didTapDeleteButton(indexPath: IndexPath)
+}
 
-    let ageTextField: CustomTextField = {
-        let textField = CustomTextField()
-        textField.floatingPlaceholder = "Возраст"
-        textField.keyboardType = .numberPad
-        return textField
+protocol UserInfoViewControllerProtocol: AnyObject {
+    func reloadKidsSection()
+    func reloadData()
+}
+
+final class UserInfoViewController: UIViewController {
+    
+    private var presenter: UserInfoPresenterProtocol
+    private lazy var collection: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumInteritemSpacing = 16
+        layout.minimumLineSpacing = 16
+        let collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collection.isUserInteractionEnabled = true
+        collection.isScrollEnabled = true
+        collection.backgroundColor = .clear
+        collection.showsVerticalScrollIndicator = false
+        collection.register(UserInfoCollectionViewCell.self, forCellWithReuseIdentifier: CollectionViewIdentifiers.userInfoCell)
+        collection.register(UserInfoHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CollectionViewIdentifiers.headerView)
+        collection.register(UserInfoFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: CollectionViewIdentifiers.footerView)
+        return collection
     }()
     
+    init(presenter: UserInfoPresenterProtocol) {
+        self.presenter = presenter
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
-    private let addChildButton = CustomButton(title: "+ Добавить ребенка", color: .systemBlue, borderColor: .systemBlue)
-    private let clearButton = CustomButton(title: "Очистить", color: .red, borderColor: .red)
-    private let childrenStackView = UIStackView()
-    
-    // MARK: - MVP Properties
-    var presenter: UserInfoPresenterProtocol!
-    
-    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
-        presenter.viewDidLoad()
+        view.backgroundColor = .white
+        collection.delegate = self
+        collection.dataSource = self
+        setupConstraints()
     }
     
-    private func setupUI() {
-        view.backgroundColor = .white
-        title = "Информация о пользователе"
-        
-        let headerLabel = UILabel()
-        headerLabel.text = "Персональные данные"
-        headerLabel.font = .boldSystemFont(ofSize: 18)
-        headerLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        childrenStackView.axis = .vertical
-        childrenStackView.spacing = 16
-        childrenStackView.translatesAutoresizingMaskIntoConstraints = false
-        
-        addChildButton.addTarget(self, action: #selector(addChildTap), for: .touchUpInside)
-        clearButton.addTarget(self, action: #selector(clearAllData), for: .touchUpInside)
-        
-        let stackView = UIStackView(arrangedSubviews: [headerLabel, nameTextField, ageTextField, addChildButton, childrenStackView, clearButton])
-        stackView.axis = .vertical
-        stackView.spacing = 16
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stackView)
-        
+    private func setupConstraints() {
+        view.addSubview(collection)
+        collection.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16)
+            collection.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            collection.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            collection.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            collection.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
     }
+}
+
+extension UserInfoViewController: UICollectionViewDataSource {
     
-    // MARK: - Actions
-    @objc private func addChildTap() {
-        presenter.addChild()
+    func numberOfSections(in collectionView: UICollectionView) -> Int {
+        return 2
     }
     
-    @objc private func clearAllData() {
-        presenter.showClearActionSheet()
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return section == 0 ? 1 : presenter.numberOfCells()
     }
     
-    // MARK: - UserInfoViewProtocol
-    func reloadChildren() {
-        childrenStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        presenter.children.forEach { child in
-            let childView = ChildView(child: child)
-            childView.removeButton.addTarget(self, action: #selector(removeChild(_:)), for: .touchUpInside)
-            childrenStackView.addArrangedSubview(childView)
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollectionViewIdentifiers.userInfoCell, for: indexPath) as? UserInfoCollectionViewCell else {
+            return UICollectionViewCell()
         }
-        addChildButton.isHidden = presenter.children.count >= 5
-    }
-    
-    func clearData() {
-        nameTextField.text = ""
-        ageTextField.text = ""
-        reloadChildren()
-    }
-    
-    @objc private func removeChild(_ sender: UIButton) {
-        if let index = childrenStackView.arrangedSubviews.firstIndex(where: { ($0 as? ChildView)?.removeButton == sender }) {
-            presenter.removeChild(at: index)
+        
+        let cellsCount = presenter.numberOfCells()
+        if indexPath.section == 0 {
+            cell.setupCell(cellType: .personalInfo, cellData: presenter.personalDataForCell(), indexPath: indexPath, cellsCount: cellsCount)
+        } else {
+            cell.setupCell(cellType: .kidsInfo, cellData: presenter.kidsDataForCell(indexPath.row), indexPath: indexPath, cellsCount: cellsCount)
         }
+        
+        cell.viewController = self
+        return cell
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        switch kind {
+        case UICollectionView.elementKindSectionHeader:
+            return setupHeaderView(at: indexPath)
+        case UICollectionView.elementKindSectionFooter:
+            return setupFooterView(at: indexPath)
+        default:
+            return UICollectionReusableView()
+        }
+    }
+    
+    private func setupHeaderView(at indexPath: IndexPath) -> UICollectionReusableView {
+        guard let headerView = collection.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CollectionViewIdentifiers.headerView, for: indexPath) as? UserInfoHeaderView else {
+            return UICollectionReusableView()
+        }
+        let style: UserInfoHeaderViewStyle = indexPath.section == 0 ? .personalInfo : .kidsInfo
+        headerView.setup(headerStyle: style, cellsCount: presenter.numberOfCells())
+        headerView.viewController = self
+        return headerView
+    }
+
+    private func setupFooterView(at indexPath: IndexPath) -> UICollectionReusableView {
+        guard let footerView = collection.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: CollectionViewIdentifiers.footerView, for: indexPath) as? UserInfoFooterView else {
+            return UICollectionReusableView()
+        }
+        if indexPath.section == 1 {
+            footerView.delegate = self
+        }
+        return footerView
+    }
+}
+
+extension UserInfoViewController: UICollectionViewDelegateFlowLayout {
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: collectionView.frame.width, height: 145)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+        return CGSize(width: collectionView.frame.width, height: 60)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForFooterInSection section: Int) -> CGSize {
+        return section == 1 && presenter.numberOfCells() > 0 ? CGSize(width: collectionView.frame.width, height: 60) : .zero
+    }
+}
+
+extension UserInfoViewController: UserInfoViewControllerProtocol {
+    func reloadKidsSection() {
+        collection.reloadSections([1])
+    }
+    
+    func reloadData() {
+        collection.reloadData()
+    }
+}
+
+extension UserInfoViewController: HeaderDelegate {
+    func didTapAddButton() {
+        presenter.didTapAddButton()
+    }
+}
+
+extension UserInfoViewController: CellToViewControllerProtocol {
+    func editingEnded(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle) {
+        presenter.saveData(indexPath: indexPath, text: text, formType: formType, cellType: cellType)
+    }
+    
+    func didTapDeleteButton(indexPath: IndexPath) {
+        presenter.deleteItem(indexPath: indexPath)
+    }
+}
+
+extension UserInfoViewController: FooterDelegate {
+    func didTapDeleteAllButton() {
+        let alert = UIAlertController(title: "Очистить данные?", message: "Все введённые данные будут удалены", preferredStyle: .actionSheet)
+        
+        let resetAction = UIAlertAction(title: "Сбросить данные", style: .destructive) { _ in
+            self.presenter.deleteAllItems()
+        }
+        
+        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel, handler: nil)
+        
+        alert.addAction(resetAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
 }

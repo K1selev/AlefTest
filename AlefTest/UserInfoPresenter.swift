@@ -5,56 +5,78 @@
 //  Created by Сергей Киселев on 20.02.2025.
 //
 
-import UIKit
+import Foundation
 
 protocol UserInfoPresenterProtocol: AnyObject {
-    var children: [Child] { get }
-    func viewDidLoad()
-    func addChild()
-    func removeChild(at index: Int)
-    func showClearActionSheet()
+    func numberOfCells() -> Int
+    func personalDataForCell() -> CellDataModel
+    func kidsDataForCell(_ index: Int) -> CellDataModel
+    func didTapAddButton()
+    func saveData(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle)
+    func deleteItem(indexPath: IndexPath)
+    func deleteAllItems()
 }
 
-class UserInfoPresenter: UserInfoPresenterProtocol {
-    private weak var view: UserInfoViewProtocol?
-    private var model: UserInfoModel
+final class UserInfoPresenter {
+    var kidsData: [CellDataModel] = []
+    var personalData: CellDataModel = CellDataModel()
     
-    var children: [Child] {
-        model.children
-    }
+    weak var view: UserInfoViewControllerProtocol?
     
-    init(view: UserInfoViewProtocol, model: UserInfoModel) {
-        self.view = view
-        self.model = model
-    }
-    
-    func viewDidLoad() {
-        view?.reloadChildren()
-    }
-    
-    func addChild() {
-        guard model.children.count < 5 else { return }
-        model.addChild(Child(name: "", age: ""))
-        view?.reloadChildren()
-    }
-    
-    func removeChild(at index: Int) {
-        model.removeChild(at: index)
-        view?.reloadChildren()
-    }
-    
-    func showClearActionSheet() {
-        let actionSheet = UIAlertController(title: "Очистить данные", message: "Вы уверены, что хотите сбросить все данные?", preferredStyle: .actionSheet)
-        
-        let resetAction = UIAlertAction(title: "Сбросить данные", style: .destructive) { _ in
-            self.model.clearAllData()
-            self.view?.clearData()
-        }
-        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel, handler: nil)
-        
-        actionSheet.addAction(resetAction)
-        actionSheet.addAction(cancelAction)
-        
-        (view as? UIViewController)?.present(actionSheet, animated: true, completion: nil)
+    private func addChild() {
+        kidsData.append(CellDataModel())
     }
 }
+
+extension UserInfoPresenter: UserInfoPresenterProtocol {
+    
+    func personalDataForCell() -> CellDataModel {
+        return personalData
+    }
+    
+    func saveData(indexPath: IndexPath, text: String?, formType: FormType, cellType: UserInfoHeaderViewStyle) {
+        switch cellType {
+        case .kidsInfo:
+            switch formType {
+            case .age:
+                kidsData[indexPath.row].age = text
+            case .name:
+                kidsData[indexPath.row].name = text
+            }
+        case .personalInfo:
+            switch formType {
+            case .age:
+                personalData.age = text
+            case .name:
+                personalData.name = text
+            }
+        }
+    }
+    
+    func kidsDataForCell(_ index: Int) -> CellDataModel {
+        return kidsData[index]
+    }
+    
+    func numberOfCells() -> Int {
+        return kidsData.count
+    }
+    
+    func deleteItem(indexPath: IndexPath) {
+        kidsData.remove(at: indexPath.row)
+        view?.reloadKidsSection()
+    }
+    
+    func deleteAllItems() {
+        personalData = CellDataModel()
+        kidsData.removeAll()
+        view?.reloadData()
+    }
+    
+    func didTapAddButton() {
+        if kidsData.count < 5 {
+            addChild()
+            view?.reloadKidsSection()
+        }
+    }
+}
+
